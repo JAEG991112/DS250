@@ -1,0 +1,221 @@
+---
+title: "Client Report - Can You Predict That?"
+subtitle: "Course DS 250"
+author: "Jose Estrada"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import pandas as pd 
+import numpy as np
+from lets_plot import *
+# add the additional libraries you need to import for ML here
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+# Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html
+
+# Include and execute your code here
+
+# import your data here using pandas and the URL
+
+
+```
+
+## Elevator pitch
+Throughout this project, we will explore Machine Learning by closely examining specific datasets and analyzing the information they provide. Using the principles learned, we will apply data analysis techniques and create visualizations to better understand the insights within the data. Our focus will be on housing data in Colorado, comparing trends before and after 1980.
+
+## QUESTION|TASK 1
+
+__Create 2-3 charts that evaluate potential relationships between the home variables and `before1980`.__ Explain what you learn from the charts The following three charts correspond to our dataset and provide relevant comparisons based on the available information. Below are the charts along with their descriptions.
+
+```{python}
+
+
+#%%
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import altair as alt
+#%%
+from sklearn.model_selection import train_test_split
+from sklearn import tree
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn import metrics
+# %%
+dwellings_denver = pd.read_csv("https://github.com/byuidatascience/data4dwellings/raw/master/dat
+dwellings_ml = pd.read_csv("https://github.com/byuidatascience/data4dwellings/raw/master/data-ra
+dwellings_neighborhoods_ml = pd.read_csv("https://github.com/byuidatascience/data4dwellings/raw/
+#%%
+
+This chart compares homes built before and after 1980 based on whether or not they have a basement and more than one story. This information tells us what kinds of living spaces were allocated over time. Older houses had fewer stories but often included a basement. New houses have more than one story, though they are less likely to have a basement.
+#Query/Chart 1
+que_1 = dwellings_ml.filter(["livearea", "finbsmnt", "before1980"]).sample(500)
+sns.pairplot(que_1, hue = "before1980")
+#%%
+
+This second chart reveals some interesting insights. First, it shows that newer houses tend to have less living area compared to those built before 1980. Additionally, the data indicates that older houses were more likely to have finished basements than newer ones. These two factors provide valuable insights into how living conditions and home design have changed over time.
+
+#Query/Chart 2
+que_2 = dwellings_ml.filter(["stories", "basement", "before1980"]).sample(500)
+sns.pairplot(que_2, hue = "before1980")
+#%%
+
+In this third chart, we compare the living area of houses built before and after 1980 in relation to the number of bedrooms. The data shows that older houses generally had more bedrooms, though their total living space was only slightly larger than that of newer homes. In contrast, newer houses tend to have fewer bedrooms and, in most cases, less overall living area compared to older homes.
+#Query/Chart 3
+que_3 = dwellings_ml.filter(["numbdrm", "livearea", "before1980"]).sample(500)
+sns.pairplot(que_3, hue = "before1980")
+
+```
+
+
+## QUESTION|TASK 2
+
+__Build a classification model labeling houses as being built “before 1980” or “during or after 1980”.__ Your goal is to reach or exceed 90% accuracy. Explain your final model choice (algorithm, tuning parameters, etc) and describe what other models you tried.  
+
+During this part of the project, I analyzed the differences between various classification models, but I did not find any significant variations apart from differences in accuracy. In the end, I chose to use the RandomForestClassifier, which achieved an accuracy of 92%, indicating that it is highly precise and reliable.
+
+```{python}
+#%%
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import altair as alt
+# %%
+dwellings_denver = pd.read_csv("https://github.com/byuidatascience/data4dwellings/raw/master/dat
+dwellings_ml = pd.read_csv("https://github.com/byuidatascience/data4dwellings/raw/master/data-ra
+dwellings_neighborhoods_ml = pd.read_csv("https://github.com/byuidatascience/data4dwellings/raw/
+#%%
+X_pred = dwellings_ml.drop(['before1980', 'yrbuilt', 'parcel'], axis=1)
+y_pred = dwellings_ml.filter(["before1980"], axis = 1)
+# Use of models...
+X_train, X_test, y_train, y_test = train_test_split(
+X_pred,
+y_pred,
+test_size = .34,
+random_state = 76)
+#%%
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import VotingClassifier
+clf = RandomForestClassifier(n_estimators=50, random_state=1)
+clf = clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+print(metrics.classification_report(y_test, y_pred))
+
+
+```
+
+
+## QUESTION|TASK 3
+
+__Justify your classification model by discussing the most important features selected by your model.__ This discussion should include a feature importance chart and a description of the features. 
+
+By using the RandomForestClassifier, we achieve a high level of accuracy in classification. The following table displays the True Positives, True Negatives, False Positives, and False Negatives, allowing us to evaluate the model's performance. These numbers help demonstrate the effectiveness and reliability of the model in making accurate predictions.
+
+```{python}
+#%%
+#question 3
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import VotingClassifier
+clf = RandomForestClassifier(n_estimators=50, random_state=1)
+clf = clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+metrics.plot_confusion_matrix(clf, X_test, y_test)
+
+
+```
+
+
+## QUESTION|TASK 4
+
+__Describe the quality of your classification model using 2-3 different evaluation metrics.__ You also need to explain how to interpret each of the evaluation metrics you use.  
+
+I decided that the two main evaluation metrics for this project specifically and that can better desccribe
+the Classification Model are: Accuracy and Recall. And i further identify each of them as factors of the
+model and its viability on the project.
+
+
+```{python}
+from sklearn.model_selection import cross_val_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import VotingClassifier
+clf = RandomForestClassifier(n_estimators=50, random_state=1)
+clf = clf.fit(X_train, y_train)
+y_pred = clf.predict(X_test)
+print(metrics.classification_report(y_test, y_pred))
+
+```
+
+---
+
+## STRETCH QUESTION|TASK 1
+
+__Repeat the classification model using 3 different algorithms.__ Display their Feature Importance, and Decision Matrix. Explian the differences between the models and which one you would recommend to the Client.   
+
+_type your results and analysis here_
+
+```{python}
+# Include and execute your code here
+
+
+```
+
+
+## STRETCH QUESTION|TASK 2
+
+__Join the `dwellings_neighborhoods_ml.csv` data to the `dwelling_ml.csv` on the `parcel` column to create a new dataset. Duplicate the code for the stretch question above and update it to use this data.__ Explain the differences and if this changes the model you recomend to the Client.   
+
+_type your results and analysis here_
+
+```{python}
+# Include and execute your code here
+
+
+```
+
+
+## STRETCH QUESTION|TASK 3
+
+__Can you build a model that predicts the year a house was built?__ Explain the model and the evaluation metrics you would use to determine if the model is good.  
+
+_type your results and analysis here_
+
+```{python}
+# Include and execute your code here
+
+
+```
+
+---
