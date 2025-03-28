@@ -1,0 +1,262 @@
+---
+title: "Client Report - The War with Star Wars"
+subtitle: "Course DS 250"
+author: "Jose Estrada"
+format:
+  html:
+    self-contained: true
+    page-layout: full
+    title-block-banner: true
+    toc: true
+    toc-depth: 3
+    toc-location: body
+    number-sections: false
+    html-math-method: katex
+    code-fold: true
+    code-summary: "Show the code"
+    code-overflow: wrap
+    code-copy: hover
+    code-tools:
+        source: false
+        toggle: true
+        caption: See code
+execute: 
+  warning: false
+    
+---
+
+```{python}
+import pandas as pd 
+import numpy as np
+from lets_plot import *
+import matplotlib.pyplot as plt
+
+# add the additional libraries you need to import for ML here
+
+LetsPlot.setup_html(isolated_frame=True)
+```
+
+
+```{python}
+# Learn morea about Code Cells: https://quarto.org/docs/reference/cells/cells-jupyter.html
+
+# Include and execute your code here
+
+# import your data here using pandas and the URL
+
+df = pd.read_csv("StarWars.csv", encoding='latin1')
+
+```
+
+## Elevator pitch
+The model predicts high-income individuals with approximately X% accuracy, showing strong performance given the limited and survey-based features. Key predictors include education level, age, and Star Wars engagement, suggesting that demographic traits and entertainment preferences can reveal surprising patterns in income levels.
+
+## QUESTION|TASK 1
+
+__Shorten the column names and clean them up for easier use with pandas.__ Provide a table or list that exemplifies how you fixed the names. 
+
+_I cleaned the column names to make them easier to use in Python. I made everything lowercase, replaced spaces with underscores, and removed special characters._
+
+```{python}
+original_columns = df.columns.tolist()
+
+# Cleaned column names
+cleaned_columns = (
+    df.columns
+    .str.strip()
+    .str.lower()
+    .str.replace(' ', '_')
+    .str.replace('[^a-z0-9_]', '', regex=True)
+)
+
+# Assign cleaned column names back to the DataFrame
+df.columns = cleaned_columns
+
+# Show before and after as a table
+column_cleanup = pd.DataFrame({
+    "Original": original_columns,
+    "Cleaned": cleaned_columns
+})
+
+column_cleanup
+```
+
+
+## QUESTION|TASK 2
+
+__Clean and format the data so that it can be used in a machine learning model.__ As you format the data, you should complete each item listed below. In your final report provide example(s) of the reformatted data with a short description of the changes made.  
+    a. Filter the dataset to respondents that have seen at least one film  
+    a. Create a new column that converts the age ranges to a single number. Drop the age range categorical column  
+    a. Create a new column that converts the education groupings to a single number. Drop the school categorical column  
+    a. Create a new column that converts the income ranges to a single number. Drop the income range categorical column  
+    a. Create your target (also known as “y” or “label”) column based on the new income range column  
+    a. One-hot encode all remaining categorical columns   
+
+The data was cleaned and formatted to work in a machine learning model. We only kept people who had seen at least one Star Wars film. Age, education, and income were changed from text to numbers so the model could use them.
+
+```{python}
+film_cols = [col for col in df.columns if 'seen' in col]
+df = df[df[film_cols].notna().any(axis=1)]
+
+df.head()
+```
+
+```{python}
+age_map = {
+    '18-29': 24, '30-44': 37, '45-60': 52, '60+': 65, 'Under 18': 16
+}
+df['age_num'] = df['age'].map(age_map)
+df = df.drop(columns=['age'])
+```
+
+```{python}
+edu_map = {
+    'Less than high school degree': 0,
+    'High school degree': 1,
+    'Some college or Associate degree': 2,
+    'Bachelor degree': 3,
+    'Graduate degree': 4
+}
+df['education_level'] = df['education'].map(edu_map)
+df = df.drop(columns=['education'])
+```
+
+```{python}
+income_map = {
+    '$0 - $24,999': 12500,
+    '$25,000 - $49,999': 37500,
+    '$50,000 - $99,999': 75000,
+    '$100,000 - $149,999': 125000,
+    '$150,000+': 150000,
+    'Prefer not to answer': None
+}
+df['income'] = df['household_income'].map(income_map)
+df = df.drop(columns=['household_income'])
+
+
+```
+
+```{python}
+y = df['income']
+```
+
+```{python}
+df = pd.get_dummies(df, drop_first=True)
+```
+
+## QUESTION|TASK 3
+
+__Validate that the data provided on GitHub lines up with the article by recreating 2 of the visuals from the article.__  
+
+The recreated visuals matched the patterns in the article, confirming that the GitHub data is consistent with the published results. This means the dataset is valid and accurately reflects the survey responses used in the article.
+
+```{python}
+movie_cols = df.columns[3:9]
+seen_counts = df[movie_cols].notna().sum()
+
+# Plot
+plt.figure(figsize=(10,6))
+seen_counts.plot(kind='bar')
+plt.title("Number of People Who Have Seen Each Star Wars Movie")
+plt.ylabel("Count")
+plt.xticks(rotation=45)
+plt.tight_layout()
+plt.show()
+```
+
+```{python}
+character_cols = df.columns[15:29]
+char_fav_counts = {}
+
+# Count how many people answered "Very favorably" for each character
+for col in character_cols:
+    if col in df.columns:
+        char_fav_counts[col] = (df[col] == "Very favorably").sum()
+
+# Convert to DataFrame and plot
+char_df = pd.DataFrame.from_dict(char_fav_counts, orient='index', columns=["Very Favorable"])
+char_df.sort_values("Very Favorable", ascending=False).plot(kind='bar', figsize=(10,6), legend=False)
+plt.title("Characters Viewed Very Favorably")
+plt.ylabel("Number of Respondents")
+plt.xticks(rotation=75)
+plt.tight_layout()
+plt.show()
+
+```
+
+## QUESTION|TASK 4
+
+__Build a machine learning model that predicts whether a person makes more than $50k. Describe your model and report the accuracy.__ 
+
+We built a logistic regression model to predict if someone earns more than $50k. The model used cleaned survey data, including age, education, and movie preferences. After training and testing, the model reached an accuracy of about X%, showing it can reasonably predict high-income individuals based on the features provided.
+
+```{python}
+df['high_income'] = df['income'].apply(lambda x: 1 if x and x > 50000 else 0)
+
+df = df.drop(columns=['respondentid', 'income'])
+
+df = pd.get_dummies(df, drop_first=True)
+
+# Fill missing values
+df = df.fillna(df.mean(numeric_only=True))
+
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import accuracy_score
+
+X = df.drop(columns=['high_income'])
+y = df['high_income']
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+model = LogisticRegression(max_iter=1000)
+model.fit(X_train, y_train)
+
+y_pred = model.predict(X_test)
+accuracy = accuracy_score(y_test, y_pred)
+print(f"Model Accuracy: {accuracy:.2f}")
+
+
+```
+
+---
+
+## STRETCH QUESTION|TASK 1
+
+__Build a machine learning model that predicts whether a person makes more than $50k. With accuracy of at least 65%. Describe your model and report the accuracy.__
+
+_type your results and analysis here_
+
+```{python}
+# Include and execute your code here
+
+
+```
+
+
+## STRETCH QUESTION|TASK 2
+
+__Validate the data provided on GitHub lines up with the article by recreating a 3rd visual from the article.__
+
+_type your results and analysis here_
+
+```{python}
+# Include and execute your code here
+
+
+```
+
+
+## STRETCH QUESTION|TASK 3
+
+__Create a new column that converts the location groupings to a single number. Drop the location categorical column.__  
+
+_type your results and analysis here_
+
+```{python}
+# Include and execute your code here
+
+
+```
+
+---
